@@ -24,27 +24,58 @@ public final class Transform {
     }
 
     public func SetPosition(_ x: Float, _ y: Float, _ z: Float, ppu: Float) {
-        owner.entity.position = SIMD3(x / ppu, y / ppu, z / ppu)
+        // Unity-compatible: treat SetPosition as localPosition in UI/2D context
+        self.localPosition = Vector3(x / ppu, y / ppu, z / ppu)
     }
 
     public func SetScale(_ x: Float, _ y: Float, _ z: Float) {
-        owner.entity.scale = SIMD3(x, y, z)
+        self.localScale = Vector3(x, y, z)
     }
 
     public func SetRotation(_ x: Float, _ y: Float, _ z: Float) {
-        // Convert degrees to radians explicitly (Unity-style Euler degrees)
-        let radians = SIMD3<Float>(
-            x * Float.pi / 180.0,
-            y * Float.pi / 180.0,
-            z * Float.pi / 180.0
+        SetLocalRotation(x, y, z)
+    }
+    
+    public var localPosition: Vector3 {
+        get {
+            let p = owner.entity.position
+            return Vector3(p.x, p.y, p.z)
+        }
+        set {
+            owner.entity.position = newValue.simd
+        }
+    }
+    
+    public var localScale: Vector3 {
+        get {
+            let s = owner.entity.scale
+            return Vector3(s.x, s.y, s.z)
+        }
+        set {
+            owner.entity.scale = newValue.simd
+        }
+    }
+    
+    public var localRotation: simd_quatf {
+        get {
+            owner.entity.orientation
+        }
+        set {
+            owner.entity.orientation = newValue
+        }
+    }
+    
+    public func SetLocalRotation(_ x: Float, _ y: Float, _ z: Float) {
+        let radians = Vector3(
+            x * .pi / 180,
+            y * .pi / 180,
+            z * .pi / 180
         )
 
-        // Unity-style explicit quaternion composition from Euler angles (XYZ order)
-        let qx = simd_quatf(angle: radians.x, axis: SIMD3<Float>(1, 0, 0))
-        let qy = simd_quatf(angle: radians.y, axis: SIMD3<Float>(0, 1, 0))
-        let qz = simd_quatf(angle: radians.z, axis: SIMD3<Float>(0, 0, 1))
+        let qx = simd_quatf(angle: radians.x, axis: SIMD3(1, 0, 0))
+        let qy = simd_quatf(angle: radians.y, axis: SIMD3(0, 1, 0))
+        let qz = simd_quatf(angle: radians.z, axis: SIMD3(0, 0, 1))
 
-        // Unity-style Euler order: Z * X * Y (matches Transform.eulerAngles)
         owner.entity.orientation = qz * qx * qy
     }
 }
