@@ -443,7 +443,7 @@ GameObject:
   - component: {fileID: 1156581529}
   - component: {fileID: 1156581528}
   m_Layer: 0
-  m_Name: GameScript
+  m_Name: GameMain
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

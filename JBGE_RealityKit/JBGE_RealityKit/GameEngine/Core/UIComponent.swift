@@ -16,22 +16,15 @@ open class UIComponent {
     // across common resolutions (640x480 .. 1920x1080).
     public let UIWorldUnitPerLogicalUnit: Float = 0.866
 
+    // Generate a random ID for this object
     public var ID: Int = Int.random(in: 0..<Int.max)
+    // Reference to the Game Engine
     public unowned let GE: GameEngine
-
-    public lazy var ThisEntity: JBEntity = JBEntity("")
-    public var SortOrder: Int = 0 // Sort order of this layer
-
-    public var BaseScale: SIMD3<Float> = SIMD3(1, 1, 1)
-    public var Position: SIMD3<Float> = SIMD3(0.5, 0.5, 0)
-    public var Scale: SIMD3<Float> = SIMD3(1, 1, 1)
-    public var Rotation: SIMD3<Float> = SIMD3(0, 0, 0) // degrees
-    
-    public var IsVisible: Bool {
-        get { ThisEntity.isEnabled }
-        set { ThisEntity.isEnabled = newValue }
-    }
-    
+    // Reference to this component's entity
+    public var ThisObject: Entity = Entity()
+    // Sort order of this layer
+    public var SortOrder: Int = 0
+        
     public init(
         _ GE: GameEngine,
         _ objectName: String? = nil,
@@ -40,37 +33,36 @@ open class UIComponent {
     ) {
         self.GE = GE
         let name = objectName ?? String("UIComponent")
-        self.ID = Int.random(in: 0..<Int.max)
-        
         // Create an empty UIPlane and set it in the hierarchy, if told to do so
         // Otherwise, just create an empty GameObject
-        ThisEntity = isCreatePlaneForThisObject ? CreateUIPlane(name, SIMD4<Float>(Float.random(in: 0..<1), Float.random(in: 0..<1), Float.random(in: 0..<1), 0.7)) : JBEntity(name)
-        
+        ThisObject = isCreatePlaneForThisObject ? CreateUIPlane(name, SIMD4<Float>(Float.random(in: 0..<1), Float.random(in: 0..<1), Float.random(in: 0..<1), 0.7)) : Entity()
+        ThisObject.name = name
         // If we don't have any parent object specified, then this container will be the root
-        ThisEntity.SetParent(parentObj?.ThisEntity)
-        
-        // Reset all transforms
+        ThisObject.setParent(parentObj?.ThisObject)
+        // Reset all transform properties
         ResetTransform()
     }
-
-    open func Update() {
-    }
     
+    // Resets the transform properties of this object
     public func ResetTransform() {
-        ThisEntity.position = SIMD3(0, 0, 0)
-        ThisEntity.scale = SIMD3(1, 1, 1)
+        ThisObject.position = SIMD3(0, 0, 0)
+        ThisObject.scale = SIMD3(1, 1, 1)
         let radians = SIMD3<Float>(0 * .pi / 180, 0 * .pi / 180, 0 * .pi / 180)
         let qx = simd_quatf(angle: radians.x, axis: SIMD3(1, 0, 0))
         let qy = simd_quatf(angle: radians.y, axis: SIMD3(0, 1, 0))
         let qz = simd_quatf(angle: radians.z, axis: SIMD3(0, 0, 1))
-        ThisEntity.orientation = qz * qx * qy
+        ThisObject.orientation = qz * qx * qy
     }
 
     // Detaches and releases entities
     open func Destroy() {
-        ThisEntity.SetParent(nil)
-        ThisEntity.Destroy()
+        ThisObject.setParent(nil)
+        ThisObject.removeFromParent()
         // Note: RealityKit entities are released automatically when no longer referenced
+    }
+    
+    // Called every frame
+    open func Update() {
     }
     
     /// <summary>
@@ -79,8 +71,8 @@ open class UIComponent {
     open func CreateUIPlane(
         _ objectName: String,
         _ bgColor: SIMD4<Float>? = .one
-    ) -> JBEntity {
-        let jbEntity = JBEntity(objectName)
+    ) -> Entity {
+        var entity = Entity()
         
         // NOTE:
         // RealityKit's effective viewport height does not match the theoretical
@@ -122,7 +114,7 @@ open class UIComponent {
 
         // Attach model under GameObject’s entity
         model.transform = .identity
-        jbEntity.addChild(model)
+        entity.addChild(model)
 
         // --- Debug outline (UI frame) ---
         
@@ -199,13 +191,13 @@ open class UIComponent {
 
         let borderEntity = ModelEntity(mesh: borderMesh, materials: [borderMaterial])
         borderEntity.name = "\(objectName)_Border"
-         jbEntity.addChild(borderEntity)
+         entity.addChild(borderEntity)
         // ----- Debug end -----
 
         // Unity RectTransform equivalent defaults
-        jbEntity.scale = SIMD3<Float>(width * 2.0, height * 2.0, 1.0)
+        entity.scale = SIMD3<Float>(width * 2.0, height * 2.0, 1.0)
 
-        return jbEntity
+        return entity
     }
     
     public func TransformAll(_ baseScale: SIMD3<Float>, _ position: SIMD3<Float>, _ scale: SIMD3<Float>, _ rotation: SIMD3<Float>, _ positionPivot: SIMD2<Float>, _ scalePivot: SIMD2<Float>, _ rotationPivot: SIMD2<Float>) {
@@ -220,14 +212,14 @@ open class UIComponent {
         let baseScaleX = baseScale.x //Image.Width / screenWidth;
         let baseScaleY = baseScale.y //Image.Height / screenHeight;
         let baseScaleZ = baseScale.z
-        ThisEntity.scale = SIMD3(baseScaleX, baseScaleY, baseScaleZ)
+        ThisObject.scale = SIMD3(baseScaleX, baseScaleY, baseScaleZ)
         
         // Then, whilst at its center position, move to the desired position
         let offsetX: Float = (position.x * (aspectRatioX * (2.0 as Float)) - aspectRatioX) + (aspectRatioX - positionPivot.x * (aspectRatioX * (2.0 as Float))) * baseScaleX
         let offsetY: Float = (aspectRatioY - position.y * (aspectRatioY * (2.0 as Float))) + ((positionPivot.y * (aspectRatioY * (2.0 as Float))) - aspectRatioY) * baseScaleY
         let offsetZ: Float = position.z * baseScaleZ
         
-        ThisEntity.position = SIMD3(offsetX, offsetY, offsetZ)
+        ThisObject.position = SIMD3(offsetX, offsetY, offsetZ)
 
         // Actual size (world units) after baseScale applied
         let baseW: Float = aspectRatioX * baseScale.x * (2.0 as Float)
@@ -241,9 +233,9 @@ open class UIComponent {
         let pivotOffsetY =  deltaH * (scalePivot.y - (0.5 as Float))
 
         // Apply desired scale
-        ThisEntity.scale *= SIMD3(scale.x, scale.y, scale.z)
+        ThisObject.scale *= SIMD3(scale.x, scale.y, scale.z)
         // Fix difference amount after scaling
-        ThisEntity.position += SIMD3(
+        ThisObject.position += SIMD3(
             pivotOffsetX,
             pivotOffsetY,
             0
@@ -271,8 +263,8 @@ open class UIComponent {
         let rotatedPivot = q.act(pivotLocal)
         let delta = rotatedPivot - pivotLocal
         // Apply rotation
-        ThisEntity.transform.rotation = q
-        ThisEntity.position -= delta
+        ThisObject.transform.rotation = q
+        ThisObject.position -= delta
     }
 }
 

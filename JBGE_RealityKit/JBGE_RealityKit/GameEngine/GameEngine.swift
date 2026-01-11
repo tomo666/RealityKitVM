@@ -9,15 +9,15 @@ import RealityKit
 
 open class GameEngine {
     // Main GameObject
-    public var MainGameObject: JBEntity
+    public var MainGameObject: Entity
     
     // Main Perspective Camera
-    public var MainCamera: JBEntity
+    public var MainCamera: Entity
 
     // Manages the UI components
-    public var UIManager: JBEntity? = nil
+    public var UIManager: Entity? = nil
     // Manages the non-UI components
-    public var SceneManager: JBEntity? = nil
+    public var SceneManager: Entity? = nil
     
     // Flag to determine if DEBUG info should be shown on screen or not
     public var IsShowDebugInfo: Bool = false
@@ -32,16 +32,16 @@ open class GameEngine {
     // Determines if we are in wait state or not
     public var IsWaiting: Bool = false
 
+    // The Pixel Per Unit scale to lift up UI scaling
+    public var PPUScaleUpUI: Float = 4.0
+    // The Pixel Per Unit scale to lift up 2D Map scaling (Actually it's the ortho size so not affecting the actual object scales)
+    public var PPUScaleUpWorld: Float = 5.0
     // Screen width in pixels
     public var ScreenWidth: Float = 0
     // Screen height in pixels
     public var ScreenHeight: Float = 0
     // If in perspective mode, the horizontal Field Of View Angle (in degrees)
     public var FOV: Float = 60.0
-    // The Pixel Per Unit scale to lift up UI scaling
-    public var PPUScaleUpUI: Float = 4.0
-    // The Pixel Per Unit scale to lift up 2D Map scaling (Actually it's the ortho size so not affecting the actual object scales)
-    public var PPUScaleUpWorld: Float = 5.0
     
     // The one and only Base UI Layer that always sits in front of the UICamera
     public var UIBaseLayer: UIComponent? = nil
@@ -50,37 +50,6 @@ open class GameEngine {
     
     // Stores all the UILayer(s) that is placed on the UIBaseLayer UICanvas
     public var UILayers: [Int: UIComponent] = [:]
-
-    // Image direction to search in the atlas for creating animations that are made up of multiple sprites
-    public enum SheetOrientation {
-        case Horizontal
-        case Vertical
-    }
-    // General horizontal alignment definitions
-    public enum HorizontalAlignment {
-        case Left
-        case Center
-        case Right
-    }
-    // General vertical alignment definitions
-    public enum VerticalAlignment {
-        case Top
-        case Middle
-        case Bottom
-    }
-    // General orientation definitions
-    public enum Orientation {
-        case Horizontal
-        case Vertical
-    }
-    // General speed identifiers
-    public enum MovementSpeed {
-        case VerySlow
-        case Slow
-        case Normal
-        case Fast
-        case VeryFast
-    }
 
     // User gamepad device inputs
     public var IDGamePad: IDGamePad = JBGE_RealityKit.IDGamePad()
@@ -91,11 +60,12 @@ open class GameEngine {
     // Manages all user inputs
     public lazy var UserInput: IDUserInput = IDUserInput(self)
     
-    public init(_ gameObject: JBEntity, _ screenWidth: Float, _ screenHeight: Float) {
+    public init(_ gameObject: Entity, _ screenWidth: Float, _ screenHeight: Float) {
         MainGameObject = gameObject
         
         // Setup main camera
-        let cameraEntity = JBEntity("MainCamera")
+        var cameraEntity = Entity()
+        cameraEntity.name = "MainCamera"
         var camera = PerspectiveCameraComponent()
         camera.fieldOfViewInDegrees = FOV
         camera.near = 0.01
@@ -103,15 +73,19 @@ open class GameEngine {
         cameraEntity.components.set(camera)
         cameraEntity.transform.translation = SIMD3<Float>(0, 0, 1.5)
         MainCamera = cameraEntity
-        MainGameObject.AddChild(MainCamera)
+        MainGameObject.addChild(MainCamera)
         
-        SceneManager = CreateGameObject("SceneManager")
-        UIManager = CreateGameObject("UIManager")
+        SceneManager = Entity()
+        SceneManager?.name = "SceneManager"
+        MainGameObject.addChild(SceneManager ?? Entity())
+        UIManager = Entity()
+        UIManager?.name = "UIManager"
+        MainGameObject.addChild(UIManager ?? Entity())
         
         // TEST
         if let cube = MainGameObject.findEntity(named: "CubeTest") {
             cube.removeFromParent()
-            SceneManager?.AddChild(cube)
+            SceneManager?.addChild(cube)
         }
         
         UpdateScreenSize(screenWidth, screenHeight)
@@ -119,24 +93,16 @@ open class GameEngine {
         // Initialize UI
         InitializeUI()
     }
-    
-    // RealityKit Specific: Creates a new GameObject under the root anchor
-    public func CreateGameObject(_ name: String) -> JBEntity {
-        let newGameObject = JBEntity(name)
-        MainGameObject.AddChild(newGameObject)
-        return newGameObject
-    }
-
-    public func UpdateScreenSize(_ width: Float, _ height: Float) {
-        guard height > 0 else { return }
-        ScreenWidth = width
-        ScreenHeight = height
-        print("[GameMain] Screen Size Changed: \(width) x \(height) --> aspect: \(width / height)")
-    }
 
     private func InitializeUI() {
+        // Create user input object
+        UserInput = IDUserInput(self);
+        
         // Create the one and utmost base layer
         UIBaseLayer = UIComponent(self, "UIBaseLayer", nil, true)
+        // Add UIBaseLayer to UIManager as root layer
+        UIManager?.addChild(UIBaseLayer?.ThisObject ?? Entity())
+        // Test
         UIBaseLayer?.TransformAll(
             SIMD3<Float>(0.5, 0.5, 0.5),
             SIMD3<Float>(0.0, 0.0, 0.0),
@@ -145,10 +111,6 @@ open class GameEngine {
             SIMD2<Float>(0.0, 0.0),
             SIMD2(0.0, 0.0),
             SIMD2(1.0, 1.0))
-        UIBaseLayer?.IsVisible = true
-
-        // Add UIBaseLayer to UIManager as root layer
-        UIManager?.AddChild(UIBaseLayer?.ThisEntity)
         
         // Create UI Layers
         //let UIBackgroundLayerID = CreateUILayer("UIBackgroundLayer")
@@ -159,6 +121,14 @@ open class GameEngine {
         dumpEntityTree(MainGameObject)
         print("================================")
     }
+    
+    // Called when screen size changes
+    public func UpdateScreenSize(_ width: Float, _ height: Float) {
+        guard height > 0 else { return }
+        ScreenWidth = width
+        ScreenHeight = height
+        print("[GameEngine] Screen Size Changed: \(width) x \(height) --> aspect: \(width / height)")
+    }
 
     /// <summary>Creates a new Layer under the base layer</summary>
     /// <returns>ID is generated that can be used to identify the newly created object (if creation fails, returns -1)</returns>
@@ -166,7 +136,6 @@ open class GameEngine {
     public func CreateUILayer(_ layerName: String = "Layer") -> Int {
         guard let baseLayer = UIBaseLayer else { return -1 }
         let layer = UIComponent(self, layerName, baseLayer, true)
-        layer.IsVisible = true
         // Sort order for each custom UI layer is incremented by 1000, where the UI BaseLayer is 0
         layer.SortOrder = (UILayers.count + 1) * 1000
         // Ensure unique ID
@@ -201,7 +170,7 @@ open class GameEngine {
     }
     
     // Debug: Dumps the entire scene's hierarchy
-    public func dumpEntityTree(
+    private func dumpEntityTree(
         _ entity: Entity,
         indent: String = "",
         isLast: Bool = true

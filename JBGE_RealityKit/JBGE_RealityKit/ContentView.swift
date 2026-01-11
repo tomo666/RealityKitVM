@@ -37,12 +37,13 @@ struct ContentView: View {
 
     private let loop = GameLoopDriver()
     private var gameMain = GameMain()
-    private var gameObject: JBEntity = JBEntity("GameMain")
+    private var gameObject: Entity = Entity()
 
     var body: some View {
         GeometryReader { geo in
             RealityView { content in
                 if let sceneEntity = try? await Entity(named: "Scene", in: JBGE_RCPBundle) {
+                    gameObject.name = "GameMain"
                     content.add(sceneEntity)
                     content.add(gameObject)
                     content.add(rootAnchor)

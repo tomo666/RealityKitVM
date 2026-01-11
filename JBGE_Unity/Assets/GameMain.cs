@@ -24,8 +24,8 @@ public class GameMain : MonoBehaviour {
 	private float TimeToWaitBeforeSceneStartCounter = 0;
 
 	void Awake() {
-		int logicalW = 1280;
-		int logicalH = 800;
+		int logicalW = 960;
+		int logicalH = 540;
 		//int logicalW = 640;
 		//int logicalH = 480;
 		Screen.SetResolution(logicalW, logicalH, FullScreenMode.Windowed);
@@ -38,8 +38,7 @@ public class GameMain : MonoBehaviour {
       // Initialize VM and run the initial game script
       gameVM = new UnityGameVM();
       // Instantiate the game engine object
-      gameVM.GE = new GameEngine(gameObject);
-
+      gameVM.GE = new GameEngine(gameObject, Screen.width, Screen.height);
 		}
     // Get the scene name (this is the main script file that always gets loaded and executed)
     //MainScriptFile = binPath + SceneManager.GetActiveScene().name + ".bytes";

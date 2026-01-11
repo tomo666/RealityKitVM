@@ -1,34 +1,27 @@
-﻿
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace JBGE {
-	/// <summary>Base class of all UI components</summary>
+	/// <summary>
+	/// Base class of all UI components
+	/// - Canvas / RectTransform is intentionally NOT used
+	/// - UI is rendered as a 3D plane in perspective space
+	/// - All layout, pivot, scale, rotation are resolved mathematically
+	/// </summary>
 	public class UIComponent {
+		// NOTE: RealityKit's effective viewport height does not match the theoretical
+    // perspective frustum due to SwiftUI + RealityView layout and safe margins.
+    // This value was empirically calibrated to match full visible screen height
+    // across common resolutions (640x480 .. 1920x1080).
 		public float UIWorldUnitPerLogicalUnit = 0.866f;
 
-		public int ID;
-		/// <summary>Reference to the RQ Game Engine</summary>
+		// Generate a random ID for this object
+		public int ID = new System.Random().Next();
+		// Reference to the Game Engine
 		protected GameEngine GE;
-		/// <summary>Reference to this object it self</summary>
+		// Reference to this component's GameObject
 		public GameObject ThisObject;
-		/// <summary>Controller of this object, which is used to set pivots and transformations of this object</summary>
-		public GameObject Controller;
-		/// <summary>Sort order of this layer</summary>
-		public int SortOrder;
-
-		/// <summary>Stores the accumulated frame count of this object (based on the game's main FPS)</summary>
-		public int Frames;
-		/// <summary>The maximum frame count that this object will accumulate (Once the frame count reaches this max value, frame count will reset to 0)</summary>
-		public int MaxFrames;
-
-		public bool IsVisible {
-			get { return ThisObject.activeSelf; }
-			set { ThisObject.SetActive(value); }
-		}
-		public string Name {
-			get { return ThisObject.name; }
-			set { ThisObject.name = value; }
-		}
+		// Sort order of this layer
+		public int SortOrder = 0;
 
 		/// <summary>Constructor</summary>
 		/// <param name="GE">Reference to the RQ Game Engine</param>
@@ -37,48 +30,85 @@ namespace JBGE {
 		/// <param name="isCreatePlaneForThisObject">Create an empty plane mesh or not</param>
 		public UIComponent(GameEngine GE, string objectName = null, UIComponent parentObj = null, bool isCreatePlaneForThisObject = false) {
 			this.GE = GE;
-			if(objectName == null) objectName = this.GetType().Name;
-
-			// Generate a random ID for this object
-			var rand = new System.Random();
-			ID = rand.Next();
-
+			string name = objectName ?? this.GetType().Name;
 			// Create an empty UIPlane and set it in the hierarchy, if told to do so
-			if(isCreatePlaneForThisObject) {
-				ThisObject = CreateUIPlane(objectName, new Color(0.5f,0.5f,0.5f,0.5f));
-			} else {
-				// Otherwise, just create an empty GameObject
-				ThisObject = new GameObject(objectName);
-				ThisObject.layer = 5; // "UI" Layer
-			}
-
-			// If we don't have any parent object specified, then this container will be directly the child of the UICamera
-			ThisObject.transform.SetParent(parentObj == null ? GE.UICamera.transform : parentObj.ThisObject.transform, false);
+			ThisObject = isCreatePlaneForThisObject ? CreateUIPlane(name, new Color(0.5f,0.5f,0.5f,0.5f)) : new GameObject(name);
+			ThisObject.layer = 5; // "UI" Layer
+			// If we don't have any parent object specified, then this container will be the root
+			ThisObject.transform.SetParent(parentObj?.ThisObject.transform);
+			// Reset all transform properties
+			ResetTransform();
 		}
 
-		public virtual void Destroy() {
-			UnityEngine.Object.Destroy(ThisObject);
-			ThisObject = null;
-			if(Controller) {
-				UnityEngine.Object.Destroy(Controller);
-				Controller = null;
-			}
-		}
-
-		/// <summary>Called every frame</summary>
-		public virtual void Update() {
-			Frames = Time.frameCount % GE.TargetFrameRate;
-			if(Frames >= MaxFrames) Frames = 0;
-		}
-
-		/// <summary>Resets the transform properties of this object</summary>
+		// Resets the transform properties of this object
 		public void ResetTransform() {
-			GameObject go = Controller == null ? ThisObject : Controller;
 			// Reset to origin
-			var rectTransform = go.GetComponent<RectTransform>();
-			rectTransform.localPosition = new Vector3(0.0f, 0.0f, 0.0f);
-			rectTransform.localRotation = Quaternion.identity;
-			rectTransform.localScale = Vector3.one;
+			ThisObject.transform.localPosition = Vector3.zero;
+			ThisObject.transform.localRotation = Quaternion.identity;
+			ThisObject.transform.localScale    = Vector3.one;
+		}
+
+		// Detaches and releases entities
+		public virtual void Destroy() {
+			Object.Destroy(ThisObject);
+			ThisObject = null;
+		}
+
+		// Called every frame
+		public virtual void Update() {
+		}
+
+		/// <summary>Creates a UI Plane that can act as a placeholder game object</summary>
+		/// <param name="objectName">Object name to be shown in the hierarchy</param>
+		/// <param name="width">The scaled width of the object</param>
+		/// <param name="height"></param>
+		/// <param name="bgColor"></param>
+		/// <returns></returns>
+		protected GameObject CreateUIPlane(string objectName, Color? bgColor = null) {
+			GameObject go = new GameObject(objectName);
+			go.layer = 5; // "UI" Layer
+			
+			MeshFilter mf = go.AddComponent(typeof(MeshFilter)) as MeshFilter;
+
+			if(bgColor != null) {
+				MeshRenderer mr = go.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
+				mr.material.EnableKeyword("_NORMALMAP");
+				mr.material.EnableKeyword("_METALLICGLOSSMAP");
+				// Create a blank 2x2 white texture on the fly
+				Texture2D texture = new Texture2D(2, 2, TextureFormat.ARGB32, false);
+				// Set the pixel values
+				texture.SetPixel(0, 0, (Color)bgColor);
+				texture.SetPixel(1, 0, (Color)bgColor);
+				texture.SetPixel(0, 1, (Color)bgColor);
+				texture.SetPixel(1, 1, (Color)bgColor);
+				texture.Apply();
+				mr.material.SetTexture("_MainTex", texture);
+			}
+
+			var height = UIWorldUnitPerLogicalUnit;
+			var width = height * (GE.ScreenWidth / GE.ScreenHeight);
+
+			Mesh m = new Mesh();
+			m.vertices = new Vector3[] {
+				new Vector3(-width, -height, 0),
+				new Vector3(width, -height, 0),
+				new Vector3(width, height, 0),
+				new Vector3(-width, height, 0)
+			};
+			m.uv = new Vector2[] {
+				new Vector2(0, 0),
+				new Vector2(0, 1),
+				new Vector2(1, 1),
+				new Vector2(1, 0)
+			};
+			m.triangles = new int[] { 2, 1, 0, 3, 2, 0 };
+			//m.triangles = m.triangles.Reverse().ToArray();
+			
+			mf.mesh = m;
+			m.RecalculateBounds();
+			m.RecalculateNormals();
+			
+			return go;
 		}
 
 		/// <summary>Transform this object in UI local space where transform order is: translation, scale, rotation</summary>
@@ -105,7 +135,7 @@ namespace JBGE {
 			t.localScale = Vector3.one;
 
 			float aspectRatioY = UIWorldUnitPerLogicalUnit;
-			float aspectRatioX = UIWorldUnitPerLogicalUnit * GE.UICamera.aspect;
+			float aspectRatioX = UIWorldUnitPerLogicalUnit * (GE.ScreenWidth / GE.ScreenHeight);
 
 			// --- Base scale (actual object size) ---
 			float baseScaleX = baseScale.x;
@@ -160,61 +190,6 @@ namespace JBGE {
 
 			t.localRotation = q;
 			t.localPosition -= delta;
-		}
-		
-		/// <summary>Creates a UI Plane that can act as a placeholder game object</summary>
-		/// <param name="objectName">Object name to be shown in the hierarchy</param>
-		/// <param name="width">The scaled width of the object</param>
-		/// <param name="height"></param>
-		/// <param name="bgColor"></param>
-		/// <returns></returns>
-		protected GameObject CreateUIPlane(string objectName, Color? bgColor = null) {
-			GameObject go = new GameObject(objectName);
-			go.layer = 5; // "UI" Layer
-			RectTransform rect = go.AddComponent<RectTransform>();
-
-			
-			MeshFilter mf = go.AddComponent(typeof(MeshFilter)) as MeshFilter;
-
-			if(bgColor != null) {
-				MeshRenderer mr = go.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
-				mr.material.EnableKeyword("_NORMALMAP");
-				mr.material.EnableKeyword("_METALLICGLOSSMAP");
-				// Create a blank 2x2 white texture on the fly
-				Texture2D texture = new Texture2D(2, 2, TextureFormat.ARGB32, false);
-				// Set the pixel values
-				texture.SetPixel(0, 0, (Color)bgColor);
-				texture.SetPixel(1, 0, (Color)bgColor);
-				texture.SetPixel(0, 1, (Color)bgColor);
-				texture.SetPixel(1, 1, (Color)bgColor);
-				texture.Apply();
-				mr.material.SetTexture("_MainTex", texture);
-			}
-
-			var height = UIWorldUnitPerLogicalUnit;
-			var width = height * GE.UICamera.aspect;
-
-			Mesh m = new Mesh();
-			m.vertices = new Vector3[] {
-				new Vector3(-width, -height, 0),
-				new Vector3(width, -height, 0),
-				new Vector3(width, height, 0),
-				new Vector3(-width, height, 0)
-			};
-			m.uv = new Vector2[] {
-				new Vector2(0, 0),
-				new Vector2(0, 1),
-				new Vector2(1, 1),
-				new Vector2(1, 0)
-			};
-			m.triangles = new int[] { 2, 1, 0, 3, 2, 0 };
-			//m.triangles = m.triangles.Reverse().ToArray();
-			
-			mf.mesh = m;
-			m.RecalculateBounds();
-			m.RecalculateNormals();
-			
-			return go;
 		}
 	}
 }

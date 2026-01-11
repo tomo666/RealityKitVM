@@ -302,8 +302,8 @@ namespace JBGE {
 			}*/
 			else if(callID == (int)VMCID.LAYER_SET_VISIBILITY) {
 				bool isVisible = (int)PopValueFromStack() == 1 ? true : false;
-				GE.UILayers[(int)PopValueFromStack()].IsVisible = isVisible;
-			} else if(callID == (int)VMCID.LAYER_SET_ACCUM_FRAME_MAX) {
+				GE.UILayers[(int)PopValueFromStack()].ThisObject.SetActive(isVisible);
+			} /*else if(callID == (int)VMCID.LAYER_SET_ACCUM_FRAME_MAX) {
 				int maxFrames = (int)PopValueFromStack();
 				GE.UILayers[(int)PopValueFromStack()].MaxFrames = maxFrames;
 			} else if(callID == (int)VMCID.LAYER_GET_ACCUM_FRAME_COUNT) {
@@ -342,7 +342,7 @@ namespace JBGE {
 				int frames = (int)PopValueFromStack();
 				//GE.UILayers[(int)PopValueFromStack()].SetMotionTweenWaitCount(frames);
 			}
-
+*/
 			/*
 			// ------------------------ Font ------------------------
 			if(callID == (int)VMCID.FONT_CREATE) {
@@ -352,6 +352,7 @@ namespace JBGE {
 				GE.DestroyFont((int)PopValueFromStack());
 			}*/
 
+/*
 			// ------------------------ Texture ------------------------
 			if(callID == (int)VMCID.TEXTURE_CREATE) {
 				int textStartAddress = (int)PopValueFromStack();
@@ -359,7 +360,7 @@ namespace JBGE {
 			} else if(callID == (int)VMCID.TEXTURE_DESTROY) {
 				GE.DestroyTexture((int)PopValueFromStack());
 			}
-
+*/
 			/*
 			// ------------------------ Text ------------------------
 			if(callID == (int)VMCID.TEXT_CREATE) {
