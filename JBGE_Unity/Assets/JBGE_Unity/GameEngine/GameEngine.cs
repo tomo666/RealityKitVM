@@ -73,6 +73,7 @@ namespace JBGE {
       MainCamera.nearClipPlane = 0.01f;
 			MainCamera.usePhysicalProperties = false;
 			MainCamera.fieldOfView = FOV;
+      MainCamera.transform.position = new Vector3(0, 0, -10);
 
       SceneManager = new GameObject("SceneManager");
       SceneManager.transform.SetParent(MainGameObject.transform);
@@ -97,16 +98,96 @@ namespace JBGE {
       // Add UIBaseLayer to UIManager as root layer
       UIBaseLayer.ThisObject.transform.SetParent(UIManager.transform);
 
-      // Test
+      // Test 0:
       /*
       UIBaseLayer.TransformAll(
-            new Vector3(0.5f, 0.5f, 0.5f),
-            new Vector3(0.0f, 0.0f, 0.0f),
-            new Vector3(0.5f, 0.5f, 1.0f),
-            new Vector3(0, 0, 45),
-            new Vector2(0.0f, 0.0f),
-            new Vector2(0.0f, 0.0f),
-            new Vector2(1.0f, 1.0f));*/
+        new Vector3(0.5f, 0.5f, 0.5f),
+        new Vector3(0.0f, 0.0f, 0.0f),
+        new Vector3(0.5f, 0.5f, 1.0f),
+        new Vector3(0, 0, 45),
+        new Vector2(0.0f, 0.0f),
+        new Vector2(0.0f, 0.0f),
+        new Vector2(1.0f, 1.0f));
+      // Test 1:
+      UIBaseLayer.TransformAll(
+        new Vector3(1f, 1f, 1f),
+        new Vector3(0f, 0f, 0f),
+        new Vector3(1f, 1f, 1f),
+        new Vector3(0, 0, 0),
+        new Vector2(0f, 0f),   // positionPivot: 左上
+        new Vector2(0.5f, 0.5f),
+        new Vector2(0.5f, 0.5f)
+      );
+      // Test 2:
+      UIBaseLayer.TransformAll(
+        new Vector3(0.5f, 0.5f, 1f),
+        new Vector3(0.5f, 0.5f, 0f),
+        new Vector3(1f, 1f, 1f),
+        new Vector3(0, 0, 0),
+        new Vector2(0.5f, 0.5f),
+        new Vector2(0.5f, 0.5f),
+        new Vector2(0.5f, 0.5f)
+      );
+      // Test 3:
+      UIBaseLayer.TransformAll(
+        new Vector3(0.5f, 0.5f, 1f),
+        new Vector3(1f, 1f, 0f),
+        new Vector3(1f, 1f, 1f),
+        new Vector3(0, 0, 0),
+        new Vector2(1f, 1f),
+        new Vector2(0.5f, 0.5f),
+        new Vector2(0.5f, 0.5f)
+      );
+      // Test 4:
+      UIBaseLayer.TransformAll(
+        new Vector3(1f, 1f, 1f),
+        new Vector3(0f, 0f, 0f),
+        new Vector3(0.5f, 0.5f, 1f),
+        new Vector3(0, 0, 0),
+        new Vector2(0f, 0f),
+        new Vector2(0f, 0f),
+        new Vector2(0.5f, 0.5f)
+      );
+      // Test 5:
+      UIBaseLayer.TransformAll(
+        new Vector3(0.6f, 0.6f, 1f),
+        new Vector3(0.5f, 0.5f, 0f),
+        new Vector3(1f, 1f, 1f),
+        new Vector3(0, 0, 30),
+        new Vector2(0.5f, 0.5f),
+        new Vector2(0.5f, 0.5f),
+        new Vector2(0.5f, 0.5f)
+      );
+      // Test 6:
+      UIBaseLayer.TransformAll(
+        new Vector3(0.5f, 0.5f, 1f),
+        new Vector3(0f, 0f, 0f),
+        new Vector3(0.5f, 0.5f, 1f),
+        new Vector3(0, 0, 45),
+        new Vector2(0f, 0f),
+        new Vector2(0f, 0f),
+        new Vector2(1f, 1f)
+      );
+      // Test 7:
+      UIBaseLayer.TransformAll(
+        new Vector3(0.75f, 0.3f, 1f),
+        new Vector3(0.4f, 0.1f, 0f),
+        new Vector3(0.5f, 0.5f, 1f),
+        new Vector3(0, 0, 0),
+        new Vector2(0.25f, 0.25f),
+        new Vector2(0.8f, 0.8f),
+        new Vector2(0.5f, 0.5f)
+      );*/
+      // Test 8:
+      UIBaseLayer.TransformAll(
+        new Vector3(0.75f, 0.3f, 1f),
+        new Vector3(0.4f, 0.1f, 0f),
+        new Vector3(0.5f, 0.5f, 1f),
+        new Vector3(20, 10, 80),
+        new Vector2(0.25f, 0.25f),
+        new Vector2(0.8f, 0.8f),
+        new Vector2(0.16f, 0.23f)
+      );
 
 			// Create UI Layers
 			//int UIBackgroundLayerID = CreateUILayer("UIBackgroundLayer");

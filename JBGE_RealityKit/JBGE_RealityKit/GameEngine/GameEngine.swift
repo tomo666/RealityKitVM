@@ -102,15 +102,95 @@ open class GameEngine {
         UIBaseLayer = UIComponent(self, "UIBaseLayer", nil, true)
         // Add UIBaseLayer to UIManager as root layer
         UIManager?.addChild(UIBaseLayer?.ThisObject ?? Entity())
-        // Test
-        UIBaseLayer?.TransformAll(
-            SIMD3<Float>(0.5, 0.5, 0.5),
+        // Test 0:
+        /*UIBaseLayer?.TransformAll(
+            SIMD3<Float>(0.5, 0.5, 1),
             SIMD3<Float>(0.0, 0.0, 0.0),
             SIMD3<Float>(0.5, 0.5, 1.0),
             SIMD3<Float>(0, 0, 45),
             SIMD2<Float>(0.0, 0.0),
-            SIMD2(0.0, 0.0),
-            SIMD2(1.0, 1.0))
+            SIMD2<Float>(0.0, 0.0),
+            SIMD2<Float>(1.0, 1.0))
+        // Test 1:
+        UIBaseLayer?.TransformAll(
+            SIMD3<Float>(1, 1, 1),
+            SIMD3<Float>(0, 0, 0),
+            SIMD3<Float>(1, 1, 1),
+            SIMD3<Float>(0, 0, 0),
+            SIMD2<Float>(0, 0),
+            SIMD2<Float>(0.5, 0.5),
+            SIMD2<Float>(0.5, 0.5)
+        );
+        // Test 2:
+        UIBaseLayer?.TransformAll(
+            SIMD3<Float>(0.5, 0.5, 1),
+            SIMD3<Float>(0.5, 0.5, 0),
+            SIMD3<Float>(1, 1, 1),
+            SIMD3<Float>(0, 0, 0),
+            SIMD2<Float>(0.5, 0.5),
+            SIMD2<Float>(0.5, 0.5),
+            SIMD2<Float>(0.5, 0.5)
+        );
+        // Test 3:
+        UIBaseLayer?.TransformAll(
+            SIMD3<Float>(0.5, 0.5, 1),
+            SIMD3<Float>(1, 1, 0),
+            SIMD3<Float>(1, 1, 1),
+            SIMD3<Float>(0, 0, 0),
+            SIMD2<Float>(1, 1),
+            SIMD2<Float>(0.5, 0.5),
+            SIMD2<Float>(0.5, 0.5)
+        );
+        // Test 4:
+        UIBaseLayer?.TransformAll(
+            SIMD3<Float>(1, 1, 1),
+            SIMD3<Float>(0, 0, 0),
+            SIMD3<Float>(0.5, 0.5, 1),
+            SIMD3<Float>(0, 0, 0),
+            SIMD2<Float>(0, 0),
+            SIMD2<Float>(0, 0),
+            SIMD2<Float>(0.5, 0.5)
+        );
+        // Test 5:
+        UIBaseLayer?.TransformAll(
+            SIMD3<Float>(0.6, 0.6, 1),
+            SIMD3<Float>(0.5, 0.5, 0),
+            SIMD3<Float>(1, 1, 1),
+            SIMD3<Float>(0, 0, 30),
+            SIMD2<Float>(0.5, 0.5),
+            SIMD2<Float>(0.5, 0.5),
+            SIMD2<Float>(0.5, 0.5)
+        );
+        // Test 6:
+        UIBaseLayer?.TransformAll(
+            SIMD3<Float>(0.5, 0.5, 1),
+            SIMD3<Float>(0, 0, 0),
+            SIMD3<Float>(0.5, 0.5, 1),
+            SIMD3<Float>(0, 0, 45),
+            SIMD2<Float>(0, 0),
+            SIMD2<Float>(0, 0),
+            SIMD2<Float>(1, 1)
+        );
+        // Test 7:
+        UIBaseLayer?.TransformAll(
+            SIMD3<Float>(0.75, 0.3, 1),
+            SIMD3<Float>(0.4, 0.1, 0),
+            SIMD3<Float>(0.5, 0.5, 1),
+            SIMD3<Float>(0, 0, 0),
+            SIMD2<Float>(0.25, 0.25),
+            SIMD2<Float>(0.8, 0.8),
+            SIMD2<Float>(0.5, 0.5)
+        );*/
+        // Test 8:
+        UIBaseLayer?.TransformAll(
+            SIMD3<Float>(0.75, 0.3, 1),
+            SIMD3<Float>(0.4, 0.1, 0),
+            SIMD3<Float>(0.5, 0.5, 1),
+            SIMD3<Float>(20, 10, 80),
+            SIMD2<Float>(0.25, 0.25),
+            SIMD2<Float>(0.8, 0.8),
+            SIMD2<Float>(0.16, 0.23)
+        );
         
         // Create UI Layers
         //let UIBackgroundLayerID = CreateUILayer("UIBackgroundLayer")

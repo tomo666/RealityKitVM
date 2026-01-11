@@ -8,12 +8,6 @@ namespace JBGE {
 	/// - All layout, pivot, scale, rotation are resolved mathematically
 	/// </summary>
 	public class UIComponent {
-		// NOTE: RealityKit's effective viewport height does not match the theoretical
-    // perspective frustum due to SwiftUI + RealityView layout and safe margins.
-    // This value was empirically calibrated to match full visible screen height
-    // across common resolutions (640x480 .. 1920x1080).
-		public float UIWorldUnitPerLogicalUnit = 0.866f;
-
 		// Generate a random ID for this object
 		public int ID = new System.Random().Next();
 		// Reference to the Game Engine
@@ -36,8 +30,6 @@ namespace JBGE {
 			ThisObject.layer = 5; // "UI" Layer
 			// If we don't have any parent object specified, then this container will be the root
 			ThisObject.transform.SetParent(parentObj?.ThisObject.transform);
-			// Reset all transform properties
-			ResetTransform();
 		}
 
 		// Resets the transform properties of this object
@@ -66,48 +58,43 @@ namespace JBGE {
 		/// <returns></returns>
 		protected GameObject CreateUIPlane(string objectName, Color? bgColor = null) {
 			GameObject go = new GameObject(objectName);
-			go.layer = 5; // "UI" Layer
-			
-			MeshFilter mf = go.AddComponent(typeof(MeshFilter)) as MeshFilter;
+			go.layer = 5; // UI
+
+			MeshFilter mf = go.AddComponent<MeshFilter>();
+			MeshRenderer mr = go.AddComponent<MeshRenderer>();
 
 			if(bgColor != null) {
-				MeshRenderer mr = go.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
-				mr.material.EnableKeyword("_NORMALMAP");
-				mr.material.EnableKeyword("_METALLICGLOSSMAP");
-				// Create a blank 2x2 white texture on the fly
-				Texture2D texture = new Texture2D(2, 2, TextureFormat.ARGB32, false);
-				// Set the pixel values
-				texture.SetPixel(0, 0, (Color)bgColor);
-				texture.SetPixel(1, 0, (Color)bgColor);
-				texture.SetPixel(0, 1, (Color)bgColor);
-				texture.SetPixel(1, 1, (Color)bgColor);
-				texture.Apply();
-				mr.material.SetTexture("_MainTex", texture);
+					var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+					mat.color = bgColor.Value;
+					mr.material = mat;
 			}
 
-			var height = UIWorldUnitPerLogicalUnit;
-			var width = height * (GE.ScreenWidth / GE.ScreenHeight);
+			float uiZ = go.transform.position.z;
+			float camZ = GE.MainCamera.transform.position.z;
+
+			float d = Mathf.Abs(camZ - uiZ);
+			float halfHeight = d * Mathf.Tan(GE.MainCamera.fieldOfView * Mathf.Deg2Rad * 0.5f);
+			float halfWidth = halfHeight * (GE.ScreenWidth / GE.ScreenHeight);
 
 			Mesh m = new Mesh();
 			m.vertices = new Vector3[] {
-				new Vector3(-width, -height, 0),
-				new Vector3(width, -height, 0),
-				new Vector3(width, height, 0),
-				new Vector3(-width, height, 0)
+					new Vector3(-halfWidth, -halfHeight, 0),
+					new Vector3( halfWidth, -halfHeight, 0),
+					new Vector3( halfWidth,  halfHeight, 0),
+					new Vector3(-halfWidth,  halfHeight, 0)
 			};
 			m.uv = new Vector2[] {
-				new Vector2(0, 0),
-				new Vector2(0, 1),
-				new Vector2(1, 1),
-				new Vector2(1, 0)
+					new Vector2(0, 0),
+					new Vector2(1, 0),
+					new Vector2(1, 1),
+					new Vector2(0, 1)
 			};
 			m.triangles = new int[] { 2, 1, 0, 3, 2, 0 };
-			//m.triangles = m.triangles.Reverse().ToArray();
-			
-			mf.mesh = m;
-			m.RecalculateBounds();
+
 			m.RecalculateNormals();
-			
+			m.RecalculateBounds();
+			mf.mesh = m;
+
 			return go;
 		}
 
@@ -129,13 +116,16 @@ namespace JBGE {
 		Vector2 rotationPivot
 ) {
 			// --- Reset ---
+			ResetTransform();
 			Transform t = ThisObject.transform;
-			t.localPosition = Vector3.zero;
-			t.localRotation = Quaternion.identity;
-			t.localScale = Vector3.one;
 
-			float aspectRatioY = UIWorldUnitPerLogicalUnit;
-			float aspectRatioX = UIWorldUnitPerLogicalUnit * (GE.ScreenWidth / GE.ScreenHeight);
+			float d = Mathf.Abs(
+					GE.MainCamera.transform.position.z
+					- ThisObject.transform.position.z
+			);
+
+			float aspectRatioY = d * Mathf.Tan(GE.MainCamera.fieldOfView * Mathf.Deg2Rad * 0.5f);
+			float aspectRatioX = aspectRatioY * (GE.ScreenWidth / GE.ScreenHeight);
 
 			// --- Base scale (actual object size) ---
 			float baseScaleX = baseScale.x;
@@ -143,24 +133,22 @@ namespace JBGE {
 			float baseScaleZ = baseScale.z;
 			t.localScale = new Vector3(baseScaleX, baseScaleY, baseScaleZ);
 
-			float offsetX =
-					position.x * (aspectRatioX * 2f) - aspectRatioX +
-					(0.5f - positionPivot.x) * (aspectRatioX * 2f);
+			float fullW = aspectRatioX * 2f;
+			float fullH = aspectRatioY * 2f;
 
-			float offsetY =
-					aspectRatioY - position.y * (aspectRatioY * 2f) +
-					(positionPivot.y - 0.5f) * (aspectRatioY * 2f);
+			float baseW = fullW * baseScale.x;
+			float baseH = fullH * baseScale.y;
 
+			float offsetX = position.x * fullW - aspectRatioX + baseW * (0.5f - positionPivot.x);
+			float offsetY = aspectRatioY - position.y * fullH + baseH * (positionPivot.y - 0.5f);
 			float offsetZ = position.z * baseScaleZ;
 
 			t.localPosition = new Vector3(offsetX, offsetY, offsetZ);
 
 			// --- Actual size after base scale ---
-			float baseW = aspectRatioX * baseScale.x * 2f;
-			float baseH = aspectRatioY * baseScale.y * 2f;
 
-			float deltaW = baseW * (scale.x - 1f);
-			float deltaH = baseH * (scale.y - 1f);
+			float deltaW = aspectRatioX * baseScale.x * 2f * (scale.x - 1f);
+			float deltaH = aspectRatioY * baseScale.y * 2f * (scale.y - 1f);
 
 			// pivot 0..1 (top-left = 0,0)
 			float pivotOffsetX = -deltaW * (scalePivot.x - 0.5f);
@@ -180,16 +168,18 @@ namespace JBGE {
 					0f
 			);
 
+			// Right hand rule for rotation
 			Quaternion q =
-					Quaternion.AngleAxis(rotation.y, Vector3.up) *
-					Quaternion.AngleAxis(rotation.x, Vector3.right) *
-					Quaternion.AngleAxis(rotation.z, Vector3.forward);
+			Quaternion.AngleAxis(-rotation.y, Vector3.up) *
+			Quaternion.AngleAxis(-rotation.x, Vector3.right) *
+			Quaternion.AngleAxis(rotation.z, Vector3.forward);
 
 			Vector3 rotatedPivot = q * pivotLocal;
 			Vector3 delta = rotatedPivot - pivotLocal;
 
 			t.localRotation = q;
 			t.localPosition -= delta;
+			
 		}
 	}
 }
